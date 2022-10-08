@@ -176,36 +176,57 @@ heart_radius = int(heart_radius)
 # Generate image with random points
 
 # Keep the points where we already put emojis + initial face coordinates
-coordinates = []
+
 safe_coordinates = [(face_centre[0], face_centre[1])]
 
-# Show face
+# Show face and face center
 cv.circle(img, (face_centre[0], face_centre[1]), int(face_radius), (255, 0, 0), 5)
-# Show face center
 cv.rectangle(img, (face_centre[0], face_centre[1]), (face_centre[0] + 1, face_centre[1] + 1), (0, 255, 0), 5)
 
-# Generate random points
-points = generate_uniform_random_points(image=img, wall=face_radius, n_points=10000)
 
-for (xx, yy) in points:
-    xx = int(xx)
-    yy = int(yy)
+# Generate validated points
+def generate_validated_points(image=None, safe_coordinates=[], element_radius=1, sub_element_radius=1, max_x_coord=0,
+                              max_y_coord=0):
+    # Generate random points
+    points = generate_uniform_random_points(image=img, wall=element_radius, n_points=10000)
+    coordinates = []
 
-    # If a point is not safe, skip it
-    if check_if_intersects(
-            coordinates=coordinates,
-            safe_coordinates=safe_coordinates,
-            x_coord=xx,
-            y_coord=yy,
-            radius=face_radius,
-            sub_element_radius=heart_radius
-    ):
-        continue
-    if check_if_outside_image(x_coord=xx, y_coord=yy, xmax=xmax, ymax=ymax, radius=heart_radius):
-        continue
-    # Draw a circle on the image
-    cv.circle(img, (xx, yy), int(heart_radius), (0, 0, 255), 5)
-    coordinates.append((xx, yy))
+    for (xx, yy) in points:
+        xx = int(xx)
+        yy = int(yy)
+
+        # If a point is not safe, skip it
+        if check_if_intersects(
+                coordinates=coordinates,
+                safe_coordinates=safe_coordinates,
+                x_coord=xx,
+                y_coord=yy,
+                radius=element_radius,
+                sub_element_radius=sub_element_radius
+        ):
+            continue
+        if check_if_outside_image(
+                x_coord=xx,
+                y_coord=yy,
+                xmax=max_x_coord,
+                ymax=max_y_coord,
+                radius=sub_element_radius
+        ):
+            continue
+        # Draw a circle on the image
+        cv.circle(img, (xx, yy), int(heart_radius), (0, 0, 255), 5)
+        coordinates.append((xx, yy))
+    return coordinates
+
+
+coordinates = generate_validated_points(
+    image=img,
+    safe_coordinates=safe_coordinates,
+    element_radius=face_radius,
+    sub_element_radius=heart_radius,
+    max_x_coord=xmax,
+    max_y_coord=ymax
+)
 
 # Show the image, wait for a key press and close the window
 cv.imshow("Faces found", img)
