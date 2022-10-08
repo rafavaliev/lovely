@@ -7,24 +7,47 @@ import os
 import sys
 
 
-def check_intersection(coordinates=[], safe_coord=(0, 0), xx=0, yy=0, radius=1, heart_radius=1):
-    for (safe_x, safe_y) in coordinates:
+# Checks if a circle with radius and coordinates is within specific borders + allowed overflow distance
+def check_if_outside_image(x_coord=0, y_coord=0, xmax=0, ymax=0, radius=1):
+    overflow_distance = radius / 3
+    if x_coord + radius > xmax + overflow_distance:
+        return True
+    if x_coord - radius < 0 - overflow_distance:
+        return True
+    if y_coord + radius > ymax + overflow_distance:
+        return True
+    if (y_coord - radius) < 0 - overflow_distance:
+        return True
+    return False
 
-        some_randomness = np.random.randint(0, 1)
-        if math.sqrt((xx - safe_x) ** 2 + (yy - safe_y) ** 2) < (2 - some_randomness) * heart_radius:
-            return False
-        if ((xx - safe_x) ** 2 + (yy - safe_y) ** 2) <= (heart_radius * (1 - some_randomness)) ** 2:
-            return False
 
-        if (xx + heart_radius) > xmax or (xx - heart_radius) < 0 or (yy + heart_radius) > ymax or (
-                yy - heart_radius) < 0:
-            return False
+# Checks if a circle with radius and coordinates intersects with existing circles and a face
+def check_if_intersects(coordinates=[], safe_coordinates=[], x_coord=0, y_coord=0, radius=1, sub_element_radius=1):
+    def _intersects(coords=[], _x_coord=0, _y_coord=0, _radius1=1, _radius2=1):
+        for (safe_x, safe_y) in coords:
+            distance_from_point_to_circle = math.sqrt((safe_x - _x_coord) ** 2 + (safe_y - _y_coord) ** 2)
 
-    some_randomness = np.random.randint(0, 1)
-    if math.sqrt((xx - safe_coord[0]) ** 2 + (yy - safe_coord[1]) ** 2) < 1.6 * radius:
+            some_randomness = np.random.randint(0, 1)
+            some_randomness = 1
+            calculated_radius = some_randomness * (_radius1 + _radius2)
+            if distance_from_point_to_circle < calculated_radius:
+                return True
+            # if ((x_coord - safe_x) ** 2 + (y_coord - safe_y) ** 2) <= (sub_element_radius * (1 - some_randomness)) ** 2:
+            #     return False
+            # if (x_coord + sub_element_radius) > xmax or (x_coord - sub_element_radius) < 0 or (
+            #         y_coord + sub_element_radius) > ymax or (
+            #         y_coord - sub_element_radius) < 0:
+            #     return False
         return False
 
-    return True
+    # Check if point intersects with any of the safe coordinates(faces)
+    if _intersects(safe_coordinates, x_coord, y_coord, radius, sub_element_radius):
+        return True
+    # Check if a points intersects with any of the other points that we already generated
+    if _intersects(coordinates, x_coord, y_coord, sub_element_radius, sub_element_radius):
+        return True
+
+    return False
 
 
 def get_face_coordinates(img_path=""):
@@ -70,6 +93,27 @@ def get_face_coordinates(img_path=""):
     return faces[0]
 
 
+# Writes emojis to an image, returns image object back
+def write_emojis_to_image(image_path="", sub_image_path="", coordinates=[], sub_image_radius=1):
+    # Re-open the image to insert emojis and not stupid circles
+    original_image = Image.open(image_path)
+
+    # Open emoji that we want to insert
+    heart = Image.open(sub_image_path)
+    # Resize emoji to fit the face
+    heart = heart.resize((int(sub_image_radius * 2), int(sub_image_radius * 2)))
+
+    # No transparency mask specified, simulating a raster overlay
+    back_im = original_image.copy()
+
+    # We already generated coordinates for circles, so we insert emoji at those coordinates
+    for (_x, _y) in coordinates:
+        back_im.paste(heart, (_x - sub_image_radius, _y - sub_image_radius), heart)
+
+    return back_im
+
+
+# Just random points
 def generate_uniform_random_points(image, wall=0, n_points=1000):
     """
     Generates a set of uniformly distributed points over the area of image
@@ -90,6 +134,7 @@ def get_new_path(path, prefix="lovely"):
     return "{}-{}.{}".format("".join(parts[:len(parts) - 1]), prefix, parts[-1])
 
 
+# Smart math
 def find_rectangle_centre(left, top, width, height):
     return int(left + width / 2), int(top + height / 2)
 
@@ -130,10 +175,9 @@ heart_radius = int(heart_radius)
 
 # Generate image with random points
 
-# Keep the points where we already put emojis
+# Keep the points where we already put emojis + initial face coordinates
 coordinates = []
-# Don't overlay the safe coordinates, like existing emojis or face
-safe_coordinate = (face_centre[0], face_centre[1])
+safe_coordinates = [(face_centre[0], face_centre[1])]
 
 # Show face
 cv.circle(img, (face_centre[0], face_centre[1]), int(face_radius), (255, 0, 0), 5)
@@ -143,20 +187,21 @@ cv.rectangle(img, (face_centre[0], face_centre[1]), (face_centre[0] + 1, face_ce
 # Generate random points
 points = generate_uniform_random_points(image=img, wall=face_radius, n_points=10000)
 
-# Draw those points on the image if they do not intersect with the face and other points/emojis
 for (xx, yy) in points:
     xx = int(xx)
     yy = int(yy)
 
     # If a point is not safe, skip it
-    if not check_intersection(
+    if check_if_intersects(
             coordinates=coordinates,
-            safe_coord=safe_coordinate,
-            xx=xx,
-            yy=yy,
+            safe_coordinates=safe_coordinates,
+            x_coord=xx,
+            y_coord=yy,
             radius=face_radius,
-            heart_radius=heart_radius
+            sub_element_radius=heart_radius
     ):
+        continue
+    if check_if_outside_image(x_coord=xx, y_coord=yy, xmax=xmax, ymax=ymax, radius=heart_radius):
         continue
     # Draw a circle on the image
     cv.circle(img, (xx, yy), int(heart_radius), (0, 0, 255), 5)
@@ -166,28 +211,6 @@ for (xx, yy) in points:
 cv.imshow("Faces found", img)
 cv.waitKey(0)
 cv.destroyAllWindows()
-
-
-# Writes emojis to an image, returns image object back
-def write_emojis_to_image(image_path, sub_image_path, coordinates, sub_image_radius):
-    # Re-open the image to insert emojis and not stupid circles
-    original_image = Image.open(image_path)
-
-    # Open emoji that we want to insert
-    heart = Image.open(sub_image_path)
-    # Resize emoji to fit the face
-    heart = heart.resize((int(heart_radius * 2), int(heart_radius * 2)))
-
-    # No transparency mask specified, simulating a raster overlay
-    back_im = original_image.copy()
-
-    # We already generated coordinates for circles, so we insert emoji at those coordinates
-    for (x, y) in coordinates:
-        back_im.paste(heart, (x - heart_radius, y - heart_radius), heart)
-
-    return back_im
-    # back_im.save(outputImagePath)
-
 
 result_img = write_emojis_to_image(
     image_path=imagePath,
