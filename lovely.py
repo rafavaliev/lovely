@@ -145,6 +145,10 @@ if len(sys.argv) <= 1 or sys.argv[1] == "":
     exit(0)
 imagePath = sys.argv[1]
 
+is_debug = False
+if len(sys.argv) == 3 and sys.argv[2] == "--debug":
+    is_debug = True
+
 # Get face coordinates
 x, y, w, h = 0, 0, 0, 0
 try:
@@ -173,18 +177,11 @@ face_radius = int(face_diameter / 2)
 heart_radius = xmax / 6
 heart_radius = int(heart_radius)
 
-# Generate image with random points
-
 # Keep the points where we already put emojis + initial face coordinates
-
 safe_coordinates = [(face_centre[0], face_centre[1])]
 
-# Show face and face center
-cv.circle(img, (face_centre[0], face_centre[1]), int(face_radius), (255, 0, 0), 5)
-cv.rectangle(img, (face_centre[0], face_centre[1]), (face_centre[0] + 1, face_centre[1] + 1), (0, 255, 0), 5)
 
-
-# Generate validated points
+# Generate validated points for emojis coordinates
 def generate_validated_points(image=None, safe_coordinates=[], element_radius=1, sub_element_radius=1, max_x_coord=0,
                               max_y_coord=0):
     # Generate random points
@@ -228,10 +225,14 @@ coordinates = generate_validated_points(
     max_y_coord=ymax
 )
 
-# Show the image, wait for a key press and close the window
-cv.imshow("Faces found", img)
-cv.waitKey(0)
-cv.destroyAllWindows()
+if is_debug:
+    # Show face and face center
+    cv.circle(img, (face_centre[0], face_centre[1]), int(face_radius), (255, 0, 0), 5)
+    cv.rectangle(img, (face_centre[0], face_centre[1]), (face_centre[0] + 1, face_centre[1] + 1), (0, 255, 0), 5)
+    # Show the image, wait for a key press and close the window
+    cv.imshow("Faces found", img)
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
 result_img = write_emojis_to_image(
     image_path=imagePath,
