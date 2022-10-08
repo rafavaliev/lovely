@@ -202,5 +202,5 @@ output_image_path = get_new_path(path=imagePath, prefix="lovely")
 f = open(output_image_path, "w")
 result_img.save(output_image_path)
 
-print("finished")
+print("finished.")
 exit()
