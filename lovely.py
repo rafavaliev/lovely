@@ -139,48 +139,6 @@ def find_rectangle_centre(left, top, width, height):
     return int(left + width / 2), int(top + height / 2)
 
 
-# Read path of the image
-if len(sys.argv) <= 1 or sys.argv[1] == "":
-    print("No image is passed. Example: python3 lovely.py /path/to/image.jpg")
-    exit(0)
-imagePath = sys.argv[1]
-
-is_debug = False
-if len(sys.argv) == 3 and sys.argv[2] == "--debug":
-    is_debug = True
-
-# Get face coordinates
-x, y, w, h = 0, 0, 0, 0
-try:
-    x, y, w, h = get_face_coordinates(img_path=imagePath)
-except Exception as e:
-    print(e)
-    exit(0)
-print("Face found at: x: {}, y: {}, width: {}, height: {}".format(x, y, w, h))
-
-# Read image
-img = cv.imread(imagePath)
-xmax, ymax, chan = img.shape
-
-
-def get_number_of_emojis(image_width, face_width):
-    return 5 if int(image_width / face_width) > 5 else int(image_width / face_width)
-
-
-number_of_emojis = get_number_of_emojis(xmax, w)
-
-face_centre = find_rectangle_centre(x, y, w, h)
-face_diameter = w if w > h else h
-face_radius = int(face_diameter / 2)
-
-# Depending on the face size, there can fit none or too many emojis. let's try to fix it
-heart_radius = xmax / 6
-heart_radius = int(heart_radius)
-
-# Keep the points where we already put emojis + initial face coordinates
-safe_coordinates = [(face_centre[0], face_centre[1])]
-
-
 # Generate validated points for emojis coordinates
 def generate_validated_points(image=None, safe_coordinates=[], element_radius=1, sub_element_radius=1, max_x_coord=0,
                               max_y_coord=0):
@@ -216,15 +174,49 @@ def generate_validated_points(image=None, safe_coordinates=[], element_radius=1,
     return coordinates
 
 
+# Read path of the image
+if len(sys.argv) <= 1 or sys.argv[1] == "":
+    print("No image is passed. Example: python3 lovely.py /path/to/image.jpg")
+    exit(0)
+imagePath = sys.argv[1]
+
+is_debug = False
+if len(sys.argv) == 3 and sys.argv[2] == "--debug":
+    is_debug = True
+
+# Get face coordinates
+x, y, w, h = 0, 0, 0, 0
+try:
+    x, y, w, h = get_face_coordinates(img_path=imagePath)
+except Exception as e:
+    print(e)
+    exit(0)
+
+# Read image
+img = cv.imread(imagePath)
+xmax, ymax, chan = img.shape
+
+face_centre = find_rectangle_centre(x, y, w, h)
+face_diameter = w if w > h else h
+face_radius = int(face_diameter / 2)
+
+# Depending on the face size, there can fit none or too many emojis. let's try to fix it
+heart_radius = xmax / 6
+heart_radius = int(heart_radius)
+
+# Keep the points where we already put emojis + initial face coordinates
+face_coordinates = [(face_centre[0], face_centre[1])]
+
 coordinates = generate_validated_points(
     image=img,
-    safe_coordinates=safe_coordinates,
+    safe_coordinates=face_coordinates,
     element_radius=face_radius,
     sub_element_radius=heart_radius,
     max_x_coord=xmax,
     max_y_coord=ymax
 )
 
+# If debug is enabled, show the image with circles, not emojis
 if is_debug:
     # Show face and face center
     cv.circle(img, (face_centre[0], face_centre[1]), int(face_radius), (255, 0, 0), 5)
