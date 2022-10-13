@@ -17,7 +17,7 @@ This library also used face detection via OpenCV, so emojis don't cover face.
 2. Run `pip install -r requirements.txt` (opencv, numpy, optional slack sdk). If you don't want to install/use slack
    sdk, you can remove it from requirements.txt.
 
-### How to
+### How to run script
 
 Default usage: script will output an image with `-lovely` suffix and ❤️ emojis: `python main.py path/to/image.jpeg`
 
@@ -38,3 +38,8 @@ this:
 2. A user who wants to add a emojis to a workspace sends a message to the app with a photo(s).
 3. The app responds with a message to the user with `lovely` emojis on the input photo(s(), which they can use later
    when adding an emoji.
+
+### How to run slack part
+
+To run slack part, export env params with your app values: `SLACK_SIGNING_SECRET` and `SLACK_BOT_TOKEN` and
+run `python slack.py`.
