@@ -252,5 +252,7 @@ if __name__ == "__main__":
     # Save modified image with lovely-prefix in the filename
     output_image_path = get_new_path(path=image_path, prefix="lovely")
 
-    f = open(output_image_path, "w")
-    result_image.save(output_image_path)
+    f = open(output_image_path, "w+")
+    f.write(result_image.tobytes())
+    f.close()
+    # result_image.save(output_image_path)
