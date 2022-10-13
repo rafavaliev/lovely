@@ -1,23 +1,28 @@
 # Lovely
 
-`Lovely` is a python library that inserts emojis to images with a face. In my experience this improves team engagement.
-An example of usage in slack:
+`Lovely` is a python library that inserts emojis to images with a face, an unexpected way to improve team morale and
+engagement. Example of usage in slack:
+
 ![slack](example-in-slack.png)
 
-This library also used face detection via OpenCV, so emojis don't cover face.
+This library uses face detection via OpenCV, so emojis don't cover face.
+
+## How to add emoji to Slack?
+
+Here is the [Slack tutorial](https://slack.com/help/articles/206870177-Add-custom-emoji-and-aliases-to-your-workspace)
 
 ## Example of work
 
 ![not-lovely](example.png) ->
 ![lovely](example-lovely.png)
 
-### Requirements
+## Requirements
 
 1. Python 3
 2. Run `pip install -r requirements.txt` (opencv, numpy, optional slack sdk). If you don't want to install/use slack
    sdk, you can remove it from requirements.txt.
 
-### How to run script
+## How to run script
 
 Default usage: script will output an image with `-lovely` suffix and ❤️ emojis: `python main.py path/to/image.jpeg`
 
@@ -28,7 +33,7 @@ Example: `python main.py path/to/image.jpeg rage`
 
 I tried to use `Pillow` to write emojis directly, but it doesn't work as expected. If you want to fix it, just do it.
 
-### Slack part
+## Slack part
 
 To add an emoji to a slack workspace one needs `admin.emoji.add` access which is part of `admin.teams:write` scope. It's
 highly unlikely that anyone will install a Slack app with such scope for just emoji, so the implementation looks like
